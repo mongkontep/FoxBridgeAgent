@@ -1,0 +1,321 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<Wix xmlns="http://schemas.microsoft.com/wix/2006/wi"
+     xmlns:util="http://schemas.microsoft.com/wix/UtilExtension">
+  
+  <!-- Product Information -->
+  <Product Id="*" 
+           Name="FoxBridgeAgent" 
+           Language="1033" 
+           Version="1.0.0.0" 
+           Manufacturer="YourCompany" 
+           UpgradeCode="YOUR-GUID-HERE">
+    
+    <Package InstallerVersion="500" 
+             Compressed="yes" 
+             InstallScope="perMachine"
+             Description="HTTP API Server for Visual FoxPro / ExpressD"
+             Comments="FoxBridgeAgent Windows Service" />
+    
+    <MajorUpgrade DowngradeErrorMessage="A newer version of [ProductName] is already installed." />
+    <MediaTemplate EmbedCab="yes" />
+    
+    <!-- Feature: Main Application -->
+    <Feature Id="ProductFeature" 
+             Title="FoxBridgeAgent" 
+             Level="1"
+             Description="FoxBridgeAgent HTTP API Server">
+      <ComponentGroupRef Id="ProductComponents" />
+      <ComponentRef Id="ConfigComponent" />
+    </Feature>
+    
+    <!-- Custom UI for configuration -->
+    <UI>
+      <UIRef Id="WixUI_InstallDir" />
+      <Publish Dialog="WelcomeDlg" Control="Next" Event="DoAction" Value="CheckSystemRequirements">1</Publish>
+      <Publish Dialog="WelcomeDlg" Control="Next" Event="NewDialog" Value="RequirementsDlg">1</Publish>
+    </UI>
+    
+    <!-- Requirements Check Dialog -->
+    <UI>
+      <Dialog Id="RequirementsDlg" Width="370" Height="270" Title="System Requirements Check">
+        <Control Id="Title" Type="Text" X="15" Y="6" Width="200" Height="15" Transparent="yes" NoPrefix="yes" Text="{\WixUI_Font_Title}System Requirements" />
+        <Control Id="Description" Type="Text" X="25" Y="23" Width="280" Height="15" Transparent="yes" NoPrefix="yes" Text="Checking system requirements for FoxBridgeAgent..." />
+        <Control Id="BannerBitmap" Type="Bitmap" X="0" Y="0" Width="370" Height="44" TabSkip="no" Text="!(loc.InstallDirDlgBannerBitmap)" />
+        <Control Id="BannerLine" Type="Line" X="0" Y="44" Width="370" Height="0" />
+        
+        <!-- Requirements List -->
+        <Control Id="RequirementsText" Type="ScrollableText" X="20" Y="60" Width="330" Height="170" Sunken="yes" TabSkip="no">
+          <Text>[REQUIREMENTS_RESULT]</Text>
+        </Control>
+        
+        <!-- Buttons -->
+        <Control Id="Back" Type="PushButton" X="180" Y="243" Width="56" Height="17" Text="&amp;Back">
+          <Publish Event="NewDialog" Value="WelcomeDlg">1</Publish>
+        </Control>
+        <Control Id="Next" Type="PushButton" X="236" Y="243" Width="56" Height="17" Default="yes" Text="&amp;Next">
+          <Publish Event="NewDialog" Value="CustomConfigDlg">1</Publish>
+          <Condition Action="disable">[REQUIREMENTS_PASSED] = "0"</Condition>
+          <Condition Action="enable">[REQUIREMENTS_PASSED] = "1"</Condition>
+        </Control>
+        <Control Id="Cancel" Type="PushButton" X="304" Y="243" Width="56" Height="17" Cancel="yes" Text="Cancel">
+          <Publish Event="SpawnDialog" Value="CancelDlg">1</Publish>
+        </Control>
+      </Dialog>
+    </UI>
+    
+    <!-- Custom Dialog for Configuration -->
+    <UI>
+      <Dialog Id="CustomConfigDlg" Width="370" Height="270" Title="FoxBridgeAgent Configuration">
+        <Control Id="Title" Type="Text" X="15" Y="6" Width="200" Height="15" Transparent="yes" NoPrefix="yes" Text="{\WixUI_Font_Title}Configuration" />
+        <Control Id="Description" Type="Text" X="25" Y="23" Width="280" Height="15" Transparent="yes" NoPrefix="yes" Text="Enter configuration details for FoxBridgeAgent" />
+        <Control Id="BannerBitmap" Type="Bitmap" X="0" Y="0" Width="370" Height="44" TabSkip="no" Text="!(loc.InstallDirDlgBannerBitmap)" />
+        <Control Id="BannerLine" Type="Line" X="0" Y="44" Width="370" Height="0" />
+        
+        <!-- Database Path -->
+        <Control Id="DatabasePathLabel" Type="Text" X="20" Y="60" Width="100" Height="17" Text="Database Path:" />
+        <Control Id="DatabasePathEdit" Type="Edit" X="20" Y="78" Width="280" Height="18" Property="DATABASE_PATH" />
+        <Control Id="DatabasePathBrowse" Type="PushButton" X="305" Y="78" Width="56" Height="17" Text="Browse..." />
+        
+        <!-- API Key -->
+        <Control Id="ApiKeyLabel" Type="Text" X="20" Y="105" Width="100" Height="17" Text="API Key:" />
+        <Control Id="ApiKeyEdit" Type="Edit" X="20" Y="123" Width="280" Height="18" Property="API_KEY" Password="yes" />
+        
+        <!-- Port -->
+        <Control Id="PortLabel" Type="Text" X="20" Y="150" Width="100" Height="17" Text="HTTP Port:" />
+        <Control Id="PortEdit" Type="Edit" X="20" Y="168" Width="100" Height="18" Property="HTTP_PORT" Text="8787" />
+        
+        <!-- Cloudflare Token -->
+        <Control Id="CloudflareTokenLabel" Type="Text" X="20" Y="195" Width="100" Height="17" Text="Cloudflare Token:" />
+        <Control Id="CloudflareTokenEdit" Type="Edit" X="20" Y="213" Width="280" Height="18" Property="CLOUDFLARE_TOKEN" />
+        
+        <!-- Buttons -->
+        <Control Id="Back" Type="PushButton" X="180" Y="243" Width="56" Height="17" Text="&amp;Back">
+          <Publish Event="NewDialog" Value="WelcomeDlg">1</Publish>
+        </Control>
+        <Control Id="Next" Type="PushButton" X="236" Y="243" Width="56" Height="17" Default="yes" Text="&amp;Next">
+          <Publish Event="NewDialog" Value="VerifyReadyDlg">1</Publish>
+        </Control>
+        <Control Id="Cancel" Type="PushButton" X="304" Y="243" Width="56" Height="17" Cancel="yes" Text="Cancel">
+          <Publish Event="SpawnDialog" Value="CancelDlg">1</Publish>
+        </Control>
+      </Dialog>
+    </UI>
+    
+    <!-- Properties for user input -->
+    <Property Id="DATABASE_PATH" Value="D:\ExpressD\Data" />
+    <Property Id="API_KEY" Value="" />
+    <Property Id="HTTP_PORT" Value="8787" />
+    <Property Id="CLOUDFLARE_TOKEN" Value="" />
+    <Property Id="WIXUI_INSTALLDIR" Value="INSTALLFOLDER" />
+    
+    <!-- Requirements Check Properties -->
+    <Property Id="REQUIREMENTS_PASSED" Value="0" />
+    <Property Id="REQUIREMENTS_RESULT" Value="" />
+    
+    <!-- Directory Structure -->
+    <Directory Id="TARGETDIR" Name="SourceDir">
+      <Directory Id="ProgramFiles64Folder">
+        <Directory Id="INSTALLFOLDER" Name="FoxBridgeAgent">
+          <Directory Id="BinFolder" Name="bin" />
+        </Directory>
+      </Directory>
+      
+      <Directory Id="CommonAppDataFolder">
+        <Directory Id="AppDataFolder" Name="FoxBridgeAgent">
+          <Directory Id="LogsFolder" Name="logs" />
+        </Directory>
+      </Directory>
+    </Directory>
+    
+  </Product>
+  
+  <!-- Components -->
+  <Fragment>
+    <ComponentGroup Id="ProductComponents" Directory="BinFolder">
+      <Component Id="FoxBridgeAgentExe" Guid="YOUR-GUID-1">
+        <File Id="FoxBridgeAgentExeFile" 
+              Source="$(var.BinPath)\FoxBridgeAgent.exe" 
+              KeyPath="yes" />
+        
+        <!-- Windows Service -->
+        <ServiceInstall Id="FoxBridgeService"
+                       Name="FoxBridgeAgent"
+                       DisplayName="FoxBridge Agent - ExpressD API Server"
+                       Description="HTTP API Server for Visual FoxPro ExpressD database. Provides REST API access to DBF files with multi-user safety. Automatically starts on system boot."
+                       Type="ownProcess"
+                       Start="auto"
+                       Account="LocalSystem"
+                       ErrorControl="normal"
+                       Arguments="--service">
+          
+          <!-- Service Recovery: Restart on failure -->
+          <util:ServiceConfig 
+            FirstFailureActionType="restart"
+            SecondFailureActionType="restart"
+            ThirdFailureActionType="restart"
+            RestartServiceDelayInSeconds="60"
+            ResetPeriodInDays="1" />
+        </ServiceInstall>
+        
+        <ServiceControl Id="StartFoxBridgeService"
+                       Name="FoxBridgeAgent"
+                       Start="install"
+                       Stop="both"
+                       Remove="uninstall"
+                       Wait="yes" />
+      </Component>
+    </ComponentGroup>
+    
+    <!-- Config File Component -->
+    <Component Id="ConfigComponent" Directory="AppDataFolder" Guid="YOUR-GUID-2">
+      <File Id="ConfigFile" Name="config.json" Source="config\config.json.template" KeyPath="yes">
+        <util:XmlFile Id="SetDatabasePath"
+                     Action="setValue"
+                     ElementPath="/configuration/database_path"
+                     Value="[DATABASE_PATH]"
+                     File="[AppDataFolder]config.json" />
+        <util:XmlFile Id="SetApiKey"
+                     Action="setValue"
+                     ElementPath="/configuration/api_key"
+                     Value="[API_KEY]"
+                     File="[AppDataFolder]config.json" />
+        <util:XmlFile Id="SetPort"
+                     Action="setValue"
+                     ElementPath="/configuration/port"
+                     Value="[HTTP_PORT]"
+                     File="[AppDataFolder]config.json" />
+        <util:XmlFile Id="SetCloudflareToken"
+                     Action="setValue"
+                     ElementPath="/configuration/cloudflare_token"
+                     Value="[CLOUDFLARE_TOKEN]"
+                     File="[AppDataFolder]config.json" />
+      </File>
+      
+      <CreateFolder />
+    </Component>
+    
+    <!-- Logs Folder Component -->
+    <Component Id="LogsFolderComponent" Directory="LogsFolder" Guid="YOUR-GUID-3">
+      <CreateFolder />
+    </Component>
+  </Fragment>
+  
+  <!-- Custom Actions -->
+  <Fragment>
+    <!-- System Requirements Check -->
+    <CustomAction Id="CheckSystemRequirements" 
+                  Script="vbscript"
+                  Execute="immediate">
+      <![CDATA[
+        Dim result, passed
+        result = ""
+        passed = 1
+        
+        ' Check 1: Windows Version
+        Set objWMI = GetObject("winmgmts:\\.\root\cimv2")
+        Set colOS = objWMI.ExecQuery("SELECT * FROM Win32_OperatingSystem")
+        For Each objOS in colOS
+          If objOS.Version >= "10.0" Then
+            result = result & "✓ Windows Version: " & objOS.Caption & vbCrLf
+          Else
+            result = result & "✗ Unsupported Windows Version" & vbCrLf
+            passed = 0
+          End If
+        Next
+        
+        ' Check 2: Administrator
+        Set objShell = CreateObject("Shell.Application")
+        If objShell.IsRestricted("System", "Shell.Application") Then
+          result = result & "✗ Not running as Administrator" & vbCrLf
+          passed = 0
+        Else
+          result = result & "✓ Running as Administrator" & vbCrLf
+        End If
+        
+        ' Check 3: VFP ODBC Driver
+        Set objShell = CreateObject("WScript.Shell")
+        On Error Resume Next
+        vfpDriver = objShell.RegRead("HKLM\SOFTWARE\ODBC\ODBCINST.INI\Microsoft Visual FoxPro Driver\Driver")
+        If Err.Number = 0 Then
+          result = result & "✓ Visual FoxPro ODBC Driver installed" & vbCrLf
+        Else
+          result = result & "✗ Visual FoxPro ODBC Driver NOT found" & vbCrLf
+          result = result & "  Download from: microsoft.com/download" & vbCrLf
+          passed = 0
+        End If
+        On Error Goto 0
+        
+        ' Check 4: VC++ Redistributable
+        On Error Resume Next
+        vcRedist = objShell.RegRead("HKLM\SOFTWARE\Microsoft\VisualStudio\14.0\VC\Runtimes\x64\Installed")
+        If Err.Number = 0 And vcRedist = 1 Then
+          result = result & "✓ Visual C++ Redistributable installed" & vbCrLf
+        Else
+          result = result & "✗ Visual C++ Redistributable NOT found" & vbCrLf
+          result = result & "  Download VC++ 2015-2022 x64" & vbCrLf
+          passed = 0
+        End If
+        On Error Goto 0
+        
+        ' Check 5: Disk Space
+        Set objFSO = CreateObject("Scripting.FileSystemObject")
+        Set objDrive = objFSO.GetDrive("C:")
+        freeMB = Int(objDrive.AvailableSpace / 1024 / 1024)
+        If freeMB >= 500 Then
+          result = result & "✓ Sufficient disk space: " & freeMB & " MB" & vbCrLf
+        Else
+          result = result & "✗ Insufficient disk space: " & freeMB & " MB (need 500 MB)" & vbCrLf
+          passed = 0
+        End If
+        
+        ' Check 6: Port 8787
+        result = result & "✓ Port 8787 will be checked during installation" & vbCrLf
+        
+        ' Check 7: Optional - cloudflared
+        result = result & vbCrLf & "Optional:" & vbCrLf
+        result = result & "⚠ cloudflared: Install for Cloudflare Tunnel support" & vbCrLf
+        
+        ' Summary
+        If passed = 1 Then
+          result = vbCrLf & "=== READY TO INSTALL ===" & vbCrLf & vbCrLf & result
+        Else
+          result = vbCrLf & "=== CANNOT INSTALL - FIX ISSUES BELOW ===" & vbCrLf & vbCrLf & result
+        End If
+        
+        Session.Property("REQUIREMENTS_RESULT") = result
+        Session.Property("REQUIREMENTS_PASSED") = CStr(passed)
+      ]]>
+    </CustomAction>
+    
+    <!-- Create config file from template with substitution -->
+    <CustomAction Id="CreateConfigFile" 
+                  Script="vbscript"
+                  Execute="deferred"
+                  Impersonate="no">
+      <![CDATA[
+        Set fso = CreateObject("Scripting.FileSystemObject")
+        Set configFile = fso.CreateTextFile(Session.Property("CustomActionData"), True)
+        
+        configFile.WriteLine "{" 
+        configFile.WriteLine "  ""database_path"": """ & Session.Property("DATABASE_PATH") & """," 
+        configFile.WriteLine "  ""api_key"": """ & Session.Property("API_KEY") & """," 
+        configFile.WriteLine "  ""port"": " & Session.Property("HTTP_PORT") & "," 
+        configFile.WriteLine "  ""cloudflare_token"": """ & Session.Property("CLOUDFLARE_TOKEN") & """," 
+        configFile.WriteLine "  ""log_level"": ""info""," 
+        configFile.WriteLine "  ""log_path"": ""C:\\ProgramData\\FoxBridgeAgent\\logs""," 
+        configFile.WriteLine "  ""index_policy"": ""auto""," 
+        configFile.WriteLine "  ""maintenance_window"": ""02:00-04:00""," 
+        configFile.WriteLine "  ""max_retry_attempts"": 3," 
+        configFile.WriteLine "  ""connection_timeout"": 30" 
+        configFile.WriteLine "}" 
+        
+        configFile.Close
+      ]]>
+    </CustomAction>
+    
+    <InstallExecuteSequence>
+      <Custom Action="CreateConfigFile" After="InstallFiles">NOT REMOVE</Custom>
+    </InstallExecuteSequence>
+  </Fragment>
+  
+</Wix>

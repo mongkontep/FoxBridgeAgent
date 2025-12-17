@@ -1,0 +1,16 @@
+{
+  "database_path": "D:\\ExpressD\\Data",
+  "api_key": "quCtcMFsFNw3zwOFxOAJxFKaOdpbuwftKzMelJCVvks=",
+  "port": 8787,
+  "host": "127.0.0.1",
+  "cloudflare_token": "eyJhIjoiYWJjZDEyMzQiLCJ0IjoiZWZnaDU2NzgiLCJzIjoiaWprbDkwMTIifQ==",
+  "cloudflare_public_url": "https://hok.pkid.io",
+  "log_level": "info",
+  "log_path": "C:\\ProgramData\\FoxBridgeAgent\\logs",
+  "index_policy": "auto",
+  "maintenance_window": "02:00-04:00",
+  "max_retry_attempts": 3,
+  "connection_timeout": 30,
+  
+  "_example_note": "This is an EXAMPLE configuration with domain hok.pkid.io"
+}
