@@ -410,12 +410,6 @@ int main(int argc, char* argv[]) {
         std::cerr << "- Insufficient permissions\n\n";
         std::cerr << "Press Enter to exit...";
         std::cin.get();
-        return 1
-    initializeLogging(g_config);
-    
-    if (mode == "console") {
-        return runAsConsole();
-    } else {
-        return runAsService();
+        return 1;
     }
 }
