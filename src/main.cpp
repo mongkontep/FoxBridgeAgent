@@ -336,7 +336,13 @@ int main(int argc, char* argv[]) {
                 std::cout << "Using config: " << config_path << std::endl;
             } catch (const std::exception& e) {
                 std::cerr << "Config file invalid: " << e.what() << std::endl;
-            }No config.json found - Starting interactive setup\n";
+            }
+        }
+    }
+    
+    // Interactive setup if no config
+    if (!config_loaded) {
+        std::cout << "\nNo config.json found - Starting interactive setup\n";
         
         std::string dbf_path = promptForPath();
         if (dbf_path.empty()) {
@@ -385,7 +391,7 @@ int main(int argc, char* argv[]) {
     try {
         initializeLogging(g_config);
         
-        std::cout << "Server starting on http://" << g_config.host << ":" << g_config.port << "\n";
+        std::cout << "Server starting on port " << g_config.port << "\n";
         std::cout << "Press Ctrl+C to stop\n\n";
         
         if (mode == "console") {
