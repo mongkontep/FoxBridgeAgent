@@ -272,69 +272,30 @@ int main(int argc, char* argv[]) {
                                        "FoxBridge Agent - ExpressD API Server",
                                        std::string(exe_path) + " --service")) {
                 std::cout << "Service installed successfully" << std::endl;
-       Try to load config from file
-    bool config_loaded = false;
-    
-    if (config_specified) {
-        // User specified config path explicitly
-        try {
-            g_config = Config::load(config_path);
-            g_config.validate();
-            config_loaded = true;
-            std::cout << "Using config file: " << config_path << std::endl;
-        } catch (const std::exception& e) {
-            std::cerr << "Error loading config: " << e.what() << std::endl;
-            return 1;
-        }
-    } else {
-        // Try to auto-detect config file
-        config_path = findConfigFile();
-        if (!config_path.empty()) {
-            try {
-                g_config = Config::load(config_path);
-                g_config.validate();
-                config_loaded = true;
-                std::cout << "Using config file: " << config_path << std::endl;
-            } catch (const std::exception& e) {
-                std::cerr << "Warning: Config file found but invalid: " << e.what() << std::endl;
+                return 0;
+            } else {
+                std::cerr << "Failed to install service" << std::endl;
+                return 1;
             }
-        }
-    }
-    
-    // If no config loaded, create default config with interactive setup
-    if (!config_loaded) {
-        std::cout << "\nไม่พบไฟล์ config.json - เริ่มต้นการตั้งค่าแบบ interactive\n";
-        
-        // Prompt for DBF path
-        std::string dbf_path = promptForPath();
-        if (dbf_path.empty()) {
-            return 1;
-        }
-        
-        // Ask for port
-        std::cout << "\nPort (กด Enter เพื่อใช้ default 8080): ";
-        std::string port_input;
-        std::getline(std::cin, port_input);
-        int port = 8080;
-        if (!port_input.empty()) {
-            try {
-                port = std::stoi(port_input);
-            } catch (...) {
-                port = 8080;
+        } else if (arg == "--uninstall") {
+            if (WindowsService::uninstall("FoxBridgeAgent")) {
+                std::cout << "Service uninstalled successfully" << std::endl;
+                return 0;
+            } else {
+                std::cerr << "Failed to uninstall service" << std::endl;
+                return 1;
             }
-        }
-        
-        // Create default config
-        g_config = createDefaultConfig(dbf_path, port);
-        
-        std::cout << "\n=============================================================\n";
-        std::cout << "Configuration created successfully!\n";
-        std::cout << "=============================================================\n";
-        std::cout << "DBF Path: " << dbf_path << "\n";
-        std::cout << "Port:     " << port << "\n";
-        std::cout << "API Key:  quCtcMFsFNw3zwOFxOAJxFKaOdpbuwftKzMelJCVvks=\n";
-        std::cout << "\nโปรแกรมจะเริ่มทำงาน...\n";
-        std::cout << "=============================================================\n\n"std::cout << "Service stopped successfully" << std::endl;
+        } else if (arg == "--start") {
+            if (WindowsService::start("FoxBridgeAgent")) {
+                std::cout << "Service started successfully" << std::endl;
+                return 0;
+            } else {
+                std::cerr << "Failed to start service" << std::endl;
+                return 1;
+            }
+        } else if (arg == "--stop") {
+            if (WindowsService::stop("FoxBridgeAgent")) {
+                std::cout << "Service stopped successfully" << std::endl;
                 return 0;
             } else {
                 std::cerr << "Failed to stop service" << std::endl;
@@ -346,36 +307,66 @@ int main(int argc, char* argv[]) {
         }
     }
     
-    // Auto-detect config file if not specified
-    if (!config_specified) {
-        config_path = findConfigFile();
-        if (config_path.empty()) {
-            printConfigHelp();
+    // Try to load config from file
+    bool config_loaded = false;
+    
+    if (config_specified) {
+        try {
+            g_config = Config::load(config_path);
+            g_config.validate();
+            config_loaded = true;
+            std::cout << "Using config: " << config_path << std::endl;
+        } catch (const std::exception& e) {
+            std::cerr << "Error loading config: " << e.what() << std::endl;
             return 1;
         }
-        std::cout << "Using config file: " << config_path << std::endl;
+    } else {
+        config_path = findConfigFile();
+        if (!config_path.empty()) {
+            try {
+                g_config = Config::load(config_path);
+                g_config.validate();
+                config_loaded = true;
+                std::cout << "Using config: " << config_path << std::endl;
+            } catch (const std::exception& e) {
+                std::cerr << "Config file invalid: " << e.what() << std::endl;
+            }
+        }
     }
     
-    // Load configuration
-    try {
-        g_config = Config::load(config_path);
-        g_config.validate();
-    } catch (const std::exception& e) {
-        std::cerr << "\n=============================================================\n";
-        std::cerr << "Configuration error: " << e.what() << std::endl;
-        std::cerr << "=============================================================\n\n";
-        std::cerr << "กรุณาตรวจสอบไฟล์: " << config_path << "\n\n";
-        std::cerr << "ค่าที่ต้องตั้ง:\n";
-        std::cerr << "  - database.dbf_path: เส้นทางไปยังโฟลเดอร์ .dbf files\n";
-        std::cerr << "  - server.port: port number (default: 8080)\n";
-        std::cerr << "  - server.api_key: API key for authentication\n\n";
-        return 1;
+    // Interactive setup if no config
+    if (!config_loaded) {
+        std::cout << "\nไม่พบไฟล์ config.json - เริ่มต้นการตั้งค่า\n";
+        
+        std::string dbf_path = promptForPath();
+        if (dbf_path.empty()) return 1;
+        
+        std::cout << "\nPort (Enter = 8080): ";
+        std::string port_input;
+        std::getline(std::cin, port_input);
+        int port = 8080;
+        if (!port_input.empty()) {
+            try {
+                port = std::stoi(port_input);
+            } catch (...) {
+                port = 8080;
+            }
+        }
+        
+        g_config = createDefaultConfig(dbf_path, port);
+        
+        std::cout << "\n=============================================================\n";
+        std::cout << "Configuration created!\n";
+        std::cout << "DBF Path: " << dbf_path << "\n";
+        std::cout << "Port:     " << port << "\n";
+        std::cout << "API Key:  quCtcMFsFNw3zwOFxOAJxFKaOdpbuwftKzMelJCVvks=\n";
+        std::cout << "\nโปรแกรมจะเริ่มทำงาน...\n";
+        std::cout << "=============================================================\n\n";
     }
     
-    // Initialize logging
+    // Initialize and run
     initializeLogging(g_config);
     
-    // Run in selected mode
     if (mode == "console") {
         return runAsConsole();
     } else {
