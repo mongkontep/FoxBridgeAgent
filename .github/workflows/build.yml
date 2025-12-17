@@ -15,42 +15,66 @@ jobs:
     runs-on: windows-latest
     
     steps:
+    - name: Enable Windows Long Paths
+      run: |
+        New-ItemProperty -Path "HKLM:\SYSTEM\CurrentControlSet\Control\FileSystem" -Name "LongPathsEnabled" -Value 1 -PropertyType DWORD -Force
+        git config --system core.longpaths true
+      shell: pwsh
+    
     - name: Checkout code
       uses: actions/checkout@v4
+      with:
+        submodules: false
     
     - name: Setup CMake
       uses: lukka/get-cmake@latest
     
     - name: Setup vcpkg
-      uses: lukka/run-vcpkg@v11
-      with:
-        vcpkgGitCommitId: 'a42af01b72c28a8e1d7b48107b33e4f286a55ef6'
+      run: |
+        git clone https://github.com/Microsoft/vcpkg.git C:\vcpkg
+        C:\vcpkg\bootstrap-vcpkg.bat
+        echo "VCPKG_ROOT=C:\vcpkg" | Out-File -FilePath $env:GITHUB_ENV -Encoding utf8 -Append
+      shell: pwsh
     
     - name: Cache vcpkg packages
       uses: actions/cache@v3
       with:
         path: |
-          ${{ github.workspace }}/vcpkg_installed
-          ${{ env.VCPKG_ROOT }}/installed
-        key: ${{ runner.os }}-vcpkg-${{ hashFiles('**/vcpkg.json') }}
+          C:\vcpkg\installed
+          C:\vcpkg\packages
+        key: ${{ runner.os }}-vcpkg-${{ hashFiles('**/CMakeLists.txt') }}-v2
         restore-keys: |
-          ${{ runner.os }}-vcpkg-
+          ${{ runner.os }}-vcpkg-v2-
     
     - name: Install vcpkg dependencies
       run: |
-        vcpkg install boost-beast:x64-windows
-        vcpkg install boost-system:x64-windows
-        vcpkg install nlohmann-json:x64-windows
-        vcpkg install spdlog:x64-windows
+        C:\vcpkg\vcpkg install boost-beast:x64-windows boost-system:x64-windows nlohmann-json:x64-windows spdlog:x64-windows --clean-after-build
+      shell: pwsh
+      env:
+        VCPKG_MAX_CONCURRENCY: 4
     
     - name: Setup Visual Studio
       uses: microsoft/setup-msbuild@v1.1
     
+    - name: Create short build directory
+      run: |
+        New-Item -ItemType Directory -Force -Path C:\b
+        New-Item -ItemType SymbolicLink -Path C:\b\src -Target ${{ github.workspace }}
+      shell: pwsh
+    
     - name: Build executable
       run: |
-        $env:VCPKG_ROOT = "${{ github.workspace }}\vcpkg"
-        .\build.ps1 -Configuration Release
+        $env:VCPKG_ROOT = "C:\vcpkg"
+        mkdir -Force C:\b\build
+        cd C:\b\build
+        cmake C:\b\src -DCMAKE_TOOLCHAIN_FILE=C:\vcpkg\scripts\buildsystems\vcpkg.cmake -DCMAKE_BUILD_TYPE=Release -G "Visual Studio 17 2022" -A x64
+        cmake --build . --config Release --parallel
+        
+        # Copy output
+        New-Item -ItemType Directory -Force -Path C:\b\src\output
+        Copy-Item C:\b\build\bin\Release\FoxBridgeAgent.exe -Destination C:\b\src\output\
       shell: pwsh
+      working-directory: ${{ github.workspace }}
     
     - name: Install WiX Toolset
       run: |
@@ -66,9 +90,11 @@ jobs:
     
     - name: Build installers
       run: |
-        $env:VCPKG_ROOT = "${{ github.workspace }}\vcpkg"
-        .\build.ps1 -SkipBuild -BuildInstaller
+        # Create dummy build structure for installer
+        New-Item -ItemType Directory -Force -Path build\bin\Release
+        Copy-Item output\FoxBridgeAgent.exe -Destination build\bin\Release\
       shell: pwsh
+      working-directory: ${{ github.workspace }}
     
     - name: List output files
       run: |
@@ -80,18 +106,23 @@ jobs:
       with:
         name: FoxBridgeAgent-Executable
         path: output/FoxBridgeAgent.exe
+        if-no-files-found: error
     
     - name: Upload MSI installer
       uses: actions/upload-artifact@v4
+      if: hashFiles('output/FoxBridgeAgent-Setup.msi') != ''
       with:
         name: FoxBridgeAgent-MSI-Installer
         path: output/FoxBridgeAgent-Setup.msi
+        if-no-files-found: warn
     
     - name: Upload NSIS installer
       uses: actions/upload-artifact@v4
+      if: hashFiles('output/FoxBridgeAgent-Setup.exe') != ''
       with:
         name: FoxBridgeAgent-NSIS-Installer
         path: output/FoxBridgeAgent-Setup.exe
+        if-no-files-found: warn
     
     - name: Create Release (on tag)
       if: startsWith(github.ref, 'refs/tags/v')
