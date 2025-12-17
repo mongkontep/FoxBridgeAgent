@@ -7,8 +7,8 @@ namespace FoxBridge {
 
 DatabaseManager::DatabaseManager(const std::string& db_folder_path)
     : db_folder_path_(db_folder_path)
-    , env_(SQL_NULL_HENV)
-    , dbc_(SQL_NULL_HDBC)
+    , henv_(SQL_NULL_HENV)
+    , hdbc_(SQL_NULL_HDBC)
     , connected_(false) {
     
     if (!std::filesystem::exists(db_folder_path_)) {
