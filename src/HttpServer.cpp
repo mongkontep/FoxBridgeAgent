@@ -359,7 +359,14 @@ std::string HttpServer::handleViewHTML(const std::string& filename) {
 
 nlohmann::json HttpServer::handleFindDocnum(const std::string& docnum) {
     auto result = db_manager_->findByDocnum(docnum);
-    return result;
+    nlohmann::json json_result = {
+        {"status", result.success ? "success" : "error"},
+        {"data", result.data}
+    };
+    if (!result.error_message.empty()) {
+        json_result["error"] = result.error_message;
+    }
+    return json_result;
 }
 
 void HttpServer::sendCSVResponse(http::response<http::string_body>& res, const std::string& csv,
@@ -435,7 +442,8 @@ std::map<std::string, std::string> HttpServer::parseQueryString(const std::strin
         }
     }
     
-    return params
+    return params;
+}
 
 nlohmann::json HttpServer::handleDirectLookup(const std::string& docnum) {
     return handleFindDocnum(docnum);
