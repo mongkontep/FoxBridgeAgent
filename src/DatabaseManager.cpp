@@ -724,7 +724,7 @@ void DatabaseManager::logError(SQLHANDLE handle, SQLSMALLINT type) {
     SQLGetDiagRecA(type, handle, 1, sql_state, &native_error, 
                    message, sizeof(message), &msg_len);
     
-    spdlog::error("ODBC Error: {} - {}", sql_state, message);
+    spdlog::error("ODBC Error: {} - {}", reinterpret_cast<const char*>(sql_state), reinterpret_cast<const char*>(message));
 }
 
 } // namespace FoxBridge

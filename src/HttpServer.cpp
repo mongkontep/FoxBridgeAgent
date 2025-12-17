@@ -358,7 +358,11 @@ std::string HttpServer::handleViewHTML(const std::string& filename) {
 }
 
 nlohmann::json HttpServer::handleFindDocnum(const std::string& docnum) {
-    auto result = db_CSVResponse(http::response<http::string_body>& res, const std::string& csv,
+    auto result = db_manager_->findByDocnum(docnum);
+    return result;
+}
+
+void HttpServer::sendCSVResponse(http::response<http::string_body>& res, const std::string& csv,
                                 const std::string& filename) {
     res.result(200);
     res.set(http::field::content_type, "text/csv; charset=utf-8");
