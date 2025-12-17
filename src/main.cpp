@@ -209,31 +209,16 @@ std::string findConfigFile() {
 Config createDefaultConfig(const std::string& dbf_path, int port = 8080) {
     Config config;
     
-    // Database settings
-    config.database_type = "vfp_odbc";
-    config.dsn = "VFP_ExpressD";
-    config.dbf_path = dbf_path;
-    config.connection_string = "Driver={Microsoft Visual FoxPro Driver};SourceType=DBF;SourceDB=" + 
-                               dbf_path + ";Exclusive=No;";
-    
-    // Server settings
-    config.host = "0.0.0.0";
-    config.port = port;
+    config.database_path = dbf_path;
     config.api_key = "quCtcMFsFNw3zwOFxOAJxFKaOdpbuwftKzMelJCVvks=";
-    
-    // Cloudflare (disabled by default)
-    config.cloudflare_enabled = false;
-    config.tunnel_name = "foxbridge";
-    config.cloudflare_config_path = "C:\\ProgramData\\FoxBridgeAgent\\cloudflare.yml";
-    
-    // Logging
+    config.port = port;
+    config.cloudflare_token = "";
     config.log_level = "info";
     config.log_path = "C:\\ProgramData\\FoxBridgeAgent\\logs";
-    
-    // Maintenance
-    config.auto_reindex = true;
-    config.check_interval_minutes = 60;
-    config.backup_before_pack = true;
+    config.index_policy = "auto";
+    config.maintenance_window = "02:00-04:00";
+    config.max_retry_attempts = 3;
+    config.connection_timeout = 30;
     
     return config;
 }
