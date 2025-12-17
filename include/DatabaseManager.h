@@ -56,23 +56,34 @@ public:
     bool isConnected() const { return connected_; }
     
 private:
+    // Connection
     std::string db_folder_path_;
+    SQLHENV henv_;
+    SQLHDBC hdbc_;
+    bool connected_;
+    
+    // Helper methods
+    bool connect();
+    void disconnect();
+    bool executeSQL(const std::string& sql, nlohmann::json& result);
     bool executeSQLCount(const std::string& sql, int& count);
+    
+    // String utilities
     std::string sanitizeFilename(const std::string& filename);
+    std::string sanitizeTableName(const std::string& table);
     std::string getTableNameFromFile(const std::string& filename);
     std::string buildConnectionString();
     std::string buildWhereClause(const nlohmann::json& where);
     std::string jsonToCSV(const nlohmann::json& data);
+    
+    // Index utilities
     IndexStatus checkIndexHealth(const std::string& filename);
-    void logError(SQLHANDLE handle, SQLSMALLINT type);
+    
+    // File utilities
     bool fileExists(const std::string& filename);
-    std::vector<std::string> listDBFFiles(
-    bool connect();
-    void disconnect();
-    bool executeSQL(const std::string& sql, nlohmann::json& result);
-    std::string sanitizeTableName(const std::string& table);
-    std::string buildConnectionString();
-    IndexStatus checkIndexHealth(const std::string& table);
+    std::vector<std::string> listDBFFiles();
+    
+    // Error handling
     void logError(SQLHANDLE handle, SQLSMALLINT type);
 };
 
