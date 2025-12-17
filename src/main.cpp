@@ -167,19 +167,25 @@ void printUsage() {
     std::cout << "FoxBridgeAgent - HTTP API Server for Visual FoxPro / ExpressD\n\n"
               << "Usage:\n"
               << "  FoxBridgeAgent.exe [options]\n\n"
+              << "Quick Start (ไม่ต้องมี config.json):\n"
+              << "  1. เปิด exe ครั้งแรก -> โปรแกรมจะถาม path ของข้อมูล\n"
+              << "  2. ใส่เส้นทางโฟลเดอร์ที่มีไฟล์ .dbf\n"
+              << "  3. เลือก port (หรือกด Enter ใช้ 8080)\n"
+              << "  4. เสร็จแล้ว! โปรแกรมจะรันเลย\n\n"
               << "Options:\n"
-              << "  --console              Run as console application (default for testing)\n"
-              << "  --service              Run as Windows Service (default for production)\n"
+              << "  --console              Run as console application (default)\n"
+              << "  --service              Run as Windows Service\n"
               << "  --install              Install as Windows Service\n"
               << "  --uninstall            Uninstall Windows Service\n"
               << "  --start                Start Windows Service\n"
               << "  --stop                 Stop Windows Service\n"
-              << "  --config <path>        Specify config file path (default: C:\\ProgramData\\FoxBridgeAgent\\config.json)\n"
+              << "  --config <path>        Use specific config file (optional)\n"
               << "  --help                 Show this help message\n\n"
-              << "Example:\n"
-              << "  FoxBridgeAgent.exe --console\n"
-              << "  FoxBridgeAgent.exe --install\n"
-              << "  FoxBridgeAgent.exe --service\n"
+              << "Examples:\n"
+              << "  FoxBridgeAgent.exe                  (first time - interactive setup)\n"
+              << "  FoxBridgeAgent.exe --console        (run with auto-detected config)\n"
+              << "  FoxBridgeAgent.exe --install        (install as service)\n"
+              << "  FoxBridgeAgent.exe --config c:\\my\\config.json\n"
               << std::endl;
 }
 
@@ -187,9 +193,8 @@ std::string findConfigFile() {
     // List of possible config locations (in order of priority)
     std::vector<std::string> search_paths = {
         ".\\config.json",                                    // Current directory
-        "C:\\ProgramData\\FoxBridgeAgent\\config.json",     // Program Data (recommended)
-        ".\\config\\config.json",                           // Config folder in current dir
-        "config.json.example"                                // Example file
+        "C:\\ProgramData\\FoxBridgeAgent\\config.json",     // Program Data
+        ".\\config\\config.json"                            // Config folder
     };
     
     for (const auto& path : search_paths) {
@@ -201,25 +206,61 @@ std::string findConfigFile() {
     return "";  // Not found
 }
 
-void printConfigHelp() {
-    std::cerr << "\n=============================================================\n";
-    std::cerr << "ERROR: ไม่พบไฟล์ config.json\n";
-    std::cerr << "=============================================================\n\n";
-    std::cerr << "วิธีแก้:\n\n";
-    std::cerr << "1. สร้างไฟล์ config.json ใน current directory:\n";
-    std::cerr << "   > copy config\\config.json.example config.json\n";
-    std::cerr << "   > notepad config.json\n\n";
-    std::cerr << "2. หรือสร้างใน Program Data:\n";
-    std::cerr << "   > mkdir C:\\ProgramData\\FoxBridgeAgent\n";
-    std::cerr << "   > copy config\\config.json.example C:\\ProgramData\\FoxBridgeAgent\\config.json\n";
-    std::cerr << "   > notepad C:\\ProgramData\\FoxBridgeAgent\\config.json\n\n";
-    std::cerr << "3. แก้ไขค่าในไฟล์:\n";
-    std::cerr << "   - dbf_path: เส้นทางไปยังโฟลเดอร์ที่มีไฟล์ .dbf\n";
-    std::cerr << "   - port: port ที่ต้องการใช้ (default: 8080)\n";
-    std::cerr << "   - api_key: API key สำหรับ authentication\n\n";
-    std::cerr << "4. รันโปรแกรมอีกครั้ง:\n";
-    std::cerr << "   > FoxBridgeAgent.exe --console\n\n";
-    std::cerr << "=============================================================\n\n";
+Config createDefaultConfig(const std::string& dbf_path, int port = 8080) {
+    Config config;
+    
+    // Database settings
+    config.database_type = "vfp_odbc";
+    config.dsn = "VFP_ExpressD";
+    config.dbf_path = dbf_path;
+    config.connection_string = "Driver={Microsoft Visual FoxPro Driver};SourceType=DBF;SourceDB=" + 
+                               dbf_path + ";Exclusive=No;";
+    
+    // Server settings
+    config.host = "0.0.0.0";
+    config.port = port;
+    config.api_key = "quCtcMFsFNw3zwOFxOAJxFKaOdpbuwftKzMelJCVvks=";
+    
+    // Cloudflare (disabled by default)
+    config.cloudflare_enabled = false;
+    config.tunnel_name = "foxbridge";
+    config.cloudflare_config_path = "C:\\ProgramData\\FoxBridgeAgent\\cloudflare.yml";
+    
+    // Logging
+    config.log_level = "info";
+    config.log_path = "C:\\ProgramData\\FoxBridgeAgent\\logs";
+    
+    // Maintenance
+    config.auto_reindex = true;
+    config.check_interval_minutes = 60;
+    config.backup_before_pack = true;
+    
+    return config;
+}
+
+std::string promptForPath() {
+    std::string path;
+    std::cout << "\n=============================================================\n";
+    std::cout << "FoxBridgeAgent - First Time Setup\n";
+    std::cout << "=============================================================\n\n";
+    std::cout << "กรุณาระบุเส้นทางไปยังโฟลเดอร์ที่มีไฟล์ .dbf:\n";
+    std::cout << "ตัวอย่าง: D:\\ExpressD\\Data\n\n";
+    std::cout << "Path: ";
+    std::getline(std::cin, path);
+    
+    // Remove quotes if present
+    if (!path.empty() && path.front() == '"' && path.back() == '"') {
+        path = path.substr(1, path.length() - 2);
+    }
+    
+    // Validate path
+    if (!std::filesystem::exists(path)) {
+        std::cerr << "\nERROR: ไม่พบโฟลเดอร์ " << path << std::endl;
+        std::cerr << "กรุณาตรวจสอบเส้นทางและลองใหม่อีกครั้ง\n" << std::endl;
+        return "";
+    }
+    
+    return path;
 }
 
 int main(int argc, char* argv[]) {
@@ -246,30 +287,69 @@ int main(int argc, char* argv[]) {
                                        "FoxBridge Agent - ExpressD API Server",
                                        std::string(exe_path) + " --service")) {
                 std::cout << "Service installed successfully" << std::endl;
-                return 0;
-            } else {
-                std::cerr << "Failed to install service" << std::endl;
-                return 1;
+       Try to load config from file
+    bool config_loaded = false;
+    
+    if (config_specified) {
+        // User specified config path explicitly
+        try {
+            g_config = Config::load(config_path);
+            g_config.validate();
+            config_loaded = true;
+            std::cout << "Using config file: " << config_path << std::endl;
+        } catch (const std::exception& e) {
+            std::cerr << "Error loading config: " << e.what() << std::endl;
+            return 1;
+        }
+    } else {
+        // Try to auto-detect config file
+        config_path = findConfigFile();
+        if (!config_path.empty()) {
+            try {
+                g_config = Config::load(config_path);
+                g_config.validate();
+                config_loaded = true;
+                std::cout << "Using config file: " << config_path << std::endl;
+            } catch (const std::exception& e) {
+                std::cerr << "Warning: Config file found but invalid: " << e.what() << std::endl;
             }
-        } else if (arg == "--uninstall") {
-            if (WindowsService::uninstall("FoxBridgeAgent")) {
-                std::cout << "Service uninstalled successfully" << std::endl;
-                return 0;
-            } else {
-                std::cerr << "Failed to uninstall service" << std::endl;
-                return 1;
+        }
+    }
+    
+    // If no config loaded, create default config with interactive setup
+    if (!config_loaded) {
+        std::cout << "\nไม่พบไฟล์ config.json - เริ่มต้นการตั้งค่าแบบ interactive\n";
+        
+        // Prompt for DBF path
+        std::string dbf_path = promptForPath();
+        if (dbf_path.empty()) {
+            return 1;
+        }
+        
+        // Ask for port
+        std::cout << "\nPort (กด Enter เพื่อใช้ default 8080): ";
+        std::string port_input;
+        std::getline(std::cin, port_input);
+        int port = 8080;
+        if (!port_input.empty()) {
+            try {
+                port = std::stoi(port_input);
+            } catch (...) {
+                port = 8080;
             }
-        } else if (arg == "--start") {
-            if (WindowsService::start("FoxBridgeAgent")) {
-                std::cout << "Service started successfully" << std::endl;
-                return 0;
-            } else {
-                std::cerr << "Failed to start service" << std::endl;
-                return 1;
-            }
-        } else if (arg == "--stop") {
-            if (WindowsService::stop("FoxBridgeAgent")) {
-                std::cout << "Service stopped successfully" << std::endl;
+        }
+        
+        // Create default config
+        g_config = createDefaultConfig(dbf_path, port);
+        
+        std::cout << "\n=============================================================\n";
+        std::cout << "Configuration created successfully!\n";
+        std::cout << "=============================================================\n";
+        std::cout << "DBF Path: " << dbf_path << "\n";
+        std::cout << "Port:     " << port << "\n";
+        std::cout << "API Key:  quCtcMFsFNw3zwOFxOAJxFKaOdpbuwftKzMelJCVvks=\n";
+        std::cout << "\nโปรแกรมจะเริ่มทำงาน...\n";
+        std::cout << "=============================================================\n\n"std::cout << "Service stopped successfully" << std::endl;
                 return 0;
             } else {
                 std::cerr << "Failed to stop service" << std::endl;
