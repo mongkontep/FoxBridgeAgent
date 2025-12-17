@@ -76,19 +76,19 @@ jobs:
       shell: pwsh
     
     - name: Upload executables
-      uses: actions/upload-artifact@v3
+      uses: actions/upload-artifact@v4
       with:
         name: FoxBridgeAgent-Executable
         path: output/FoxBridgeAgent.exe
     
     - name: Upload MSI installer
-      uses: actions/upload-artifact@v3
+      uses: actions/upload-artifact@v4
       with:
         name: FoxBridgeAgent-MSI-Installer
         path: output/FoxBridgeAgent-Setup.msi
     
     - name: Upload NSIS installer
-      uses: actions/upload-artifact@v3
+      uses: actions/upload-artifact@v4
       with:
         name: FoxBridgeAgent-NSIS-Installer
         path: output/FoxBridgeAgent-Setup.exe
