@@ -44,7 +44,7 @@ Var CloudflareToken
 
 ; Custom Page for Configuration
 Function ConfigPage
-  !insertmacro MUI_HEADER_TEXT "Configuration" "Enter FoxBridgeAgent configuration"
+  !insertmacro MUI_HEADER_TEXT "Database Configuration" "Configure FoxBridgeAgent Settings"
   
   nsDialogs::Create 1018
   Pop $0
@@ -53,43 +53,71 @@ Function ConfigPage
     Abort
   ${EndIf}
   
-  ; Database Path
-  ${NSD_CreateLabel} 0 10u 100% 12u "Database Path (ExpressD DBF folder):"
+  ; Set default API Key if empty
+  ${If} $ApiKey == ""
+    StrCpy $ApiKey "quCtcMFsFNw3zwOFxOAJxFKaOdpbuwftKzMelJCVvks="
+  ${EndIf}
+  
+  ; Set default port if empty
+  ${If} $HttpPort == ""
+    StrCpy $HttpPort "8080"
+  ${EndIf}
+  
+  ; Info text
+  ${NSD_CreateLabel} 0 0u 100% 12u "Please specify the folder containing your .DBF files:"
   Pop $0
-  ${NSD_CreateDirRequest} 0 24u 85% 12u "$DatabasePath"
+  
+  ; Database Path
+  ${NSD_CreateLabel} 0 15u 100% 12u "Database Path (folder with .DBF files):"
+  Pop $0
+  ${NSD_CreateDirRequest} 0 29u 85% 12u "$DatabasePath"
   Pop $DatabasePath
-  ${NSD_CreateBrowseButton} 87% 24u 13% 12u "..."
+  ${NSD_CreateBrowseButton} 87% 29u 13% 12u "Browse..."
   Pop $1
   ${NSD_OnClick} $1 BrowseDatabase
   
-  ; API Key
-  ${NSD_CreateLabel} 0 45u 100% 12u "API Key (for authentication):"
-  Pop $0
-  ${NSD_CreatePassword} 0 59u 100% 12u "$ApiKey"
-  Pop $ApiKey
-  
   ; HTTP Port
-  ${NSD_CreateLabel} 0 80u 100% 12u "HTTP Port:"
+  ${NSD_CreateLabel} 0 50u 50% 12u "HTTP Port:"
   Pop $0
-  ${NSD_CreateNumber} 0 94u 50% 12u "8787"
+  ${NSD_CreateNumber} 0 64u 30% 12u "$HttpPort"
   Pop $HttpPort
   
-  ; Cloudflare Token
-  ${NSD_CreateLabel} 0 115u 100% 12u "Cloudflare Tunnel Token (optional):"
+  ; Port hint
+  ${NSD_CreateLabel} 35% 66u 65% 10u "(Default: 8080)"
   Pop $0
-  ${NSD_CreateText} 0 129u 100% 12u "$CloudflareToken"
-  Pop $CloudflareToken
   
-  nsDialogs::Show
-FunctionEnd
-
-Function BrowseDatabase
-  nsDialogs::SelectFolderDialog "Select ExpressD Database Folder" "$DatabasePath"
+  ; API Key
+  ${NSD_CreateLabel} 0 85u 100% 12u "API Key (auto-generated, keep it safe):"
   Pop $0
-  ${If} $0 != error
-    StrCpy $DatabasePath $0
+  ${NSD_CreateText} 0 99u 100% 12u "$ApiKey"
+  Pop $ApiKey
+  
+  ; API Key hint
+  ${NSD_CreateLabel} 0 113u 100% 10u "This key is required for API authentication"
+  Pop $0
+  
+  ; Validate Database Path
+  ${If} $DatabasePath == ""
+    MessageBox MB_ICONEXCLAMATION "Please specify the Database Path!$\n$\nThis is the folder containing your .DBF files."
+    Abort
   ${EndIf}
-FunctionEnd
+  
+  ; Check if path exists
+  IfFileExists "$DatabasePath\*.*" PathExists PathNotExists
+  PathNotExists:
+    MessageBox MB_ICONQUESTION|MB_YESNO "The specified folder does not exist:$\n$\n$DatabasePath$\n$\nDo you want to continue anyway?" IDYES PathExists
+    Abort
+  PathExists:
+  
+  ; Validate API Key
+  ${If} $ApiKey == ""
+    MessageBox MB_ICONEXCLAMATION "API Key cannot be empty!"
+    Abort
+  ${EndIf}
+  
+  ; Validate Port
+  ${If} $HttpPort == ""
+    StrCpy $HttpPort "8080"nd
 
 Function ConfigPageLeave
   ${NSD_GetText} $DatabasePath $DatabasePath
@@ -108,21 +136,66 @@ Function ConfigPageLeave
     Abort
   ${EndIf}
 FunctionEnd
+ with proper format
+  DetailPrint "Creating configuration file..."
+  
+  ; Escape backslashes for JSON
+  Push "$DatabasePath"
+  Call EscapeBackslashes
+  Pop $0
+  
+  FileOpen $1 "$APPDATA\FoxBridgeAgent\config.json" w
+  FileWrite $1 '{$\r$\n'
+  FileWrite $1 '  "database": {$\r$\n'
+  FileWrite $1 '    "type": "vfp_odbc",$\r$\n'
+  FileWrite $1 '    "dsn": "VFP_ExpressD",$\r$\n'
+  FileWrite $1 '    "connection_string": "Driver={Microsoft Visual FoxPro Driver};SourceType=DBF;SourceDB=$0;Exclusive=No;",$\r$\n'
+  FileWrite $1 '    "dbf_path": "$0"$\r$\n'
+  FileWrite $1 '  },$\r$\n'
+  FileWrite $1 '  "server": {$\r$\n'
+  FileWrite $1 '    "host": "0.0.0.0",$\r$\n'
+  FileWrite $1 '    "port": $HttpPort,$\r$\n'
+  FileWrite $1 '    "api_key": "$ApiKey"$\r$\n'
+  FileWrite $1 '  },$\r$\n'
+  FileWrite $1 '  "cloudflare": {$\r$\n'
+  FileWrite $1 '    "enabled": false$\r$\n'
+  FileWrite $1 '  },$\r$\n'
+  FileWrite $1 '  "logging": {$\r$\n'
+  FileWrite $1 '    "level": "info",$\r$\n'
+  FileWrite $1 '    "path": "C:\\ProgramData\\FoxBridgeAgent\\logs"$\r$\n'
+  FileWrite $1 '  },$\r$\n'
+  FileWrite $1 '  "maintenance": {$\r$\n'
+  FileWrite $1 '    "auto_reindex": true,$\r$\n'
+  FileWrite $1 '    "check_interval_minutes": 60,$\r$\n'
+  FileWrite $1 '    "backup_before_pack": true$\r$\n'
+  FileWrite $1 '  }$\r$\n'
+  FileWrite $1 '}$\r$\n'
+  FileClose $1
+  
+  DetailPrint "Configuration saved to: $APPDATA\FoxBridgeAgent\config.json"
 
-; Installation Section
-Section "Install"
-  SetOutPath "$INSTDIR\bin"
+; Function to escape backslashes for JSON
+Function EscapeBackslashes
+  Exch $0
+  Push $1
+  Push $2
   
-  ; Copy executable
-  File "..\build\bin\Release\FoxBridgeAgent.exe"
+  StrCpy $1 ""
+  StrLen $2 $0
   
-  ; Create ProgramData directory
-  CreateDirectory "$APPDATA\FoxBridgeAgent"
-  CreateDirectory "$APPDATA\FoxBridgeAgent\logs"
+  ${While} $2 > 0
+    StrCpy $1 "$0" 1
+    ${If} $1 == "\"
+      StrCpy $1 "\\"
+    ${EndIf}
+    StrCpy $0 "$0" "" 1
+    IntOp $2 $2 - 1
+  ${EndWhile}
   
-  ; Create config.json
-  FileOpen $0 "$APPDATA\FoxBridgeAgent\config.json" w
-  FileWrite $0 '{$\r$\n'
+  Pop $2
+  Pop $1
+  Exch $0
+FunctionEnd '{$\r$\n'
   FileWrite $0 '  "database_path": "$DatabasePath",$\r$\n'
   FileWrite $0 '  "api_key": "$ApiKey",$\r$\n'
   FileWrite $0 '  "port": $HttpPort,$\r$\n'
