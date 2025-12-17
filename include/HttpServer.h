@@ -51,15 +51,15 @@ private:
     
     // CRUD operations
     nlohmann::json handleAdd(const std::string& filename, const nlohmann::json& body);
-    nlohmann:CSVResponse(http::response<http::string_body>& res, const std::string& csv,
+    void sendCSVResponse(http::response<http::string_body>& res, const std::string& csv,
                         const std::string& filename);
     void sendHTMLResponse(http::response<http::string_body>& res, const std::string& html);
-    void sendError(http::response<http::string_body>& res, int status, 
-                  const std::string& message);
     
     std::string extractFilename(const std::string& path);
     std::string sanitizeFilename(const std::string& filename);
-    std::map<std::string, std::string> parseQueryString(const std::string& querytring& filename, const nlohmann::json& body);
+    std::map<std::string, std::string> parseQueryString(const std::string& queryString);
+    nlohmann::json handleUpdate(const std::string& filename, const nlohmann::json& body);
+    nlohmann::json handleDelete(const std::string& filename, const nlohmann::json& body);
     nlohmann::json handleUndelete(const std::string& filename, const nlohmann::json& body);
     nlohmann::json handlePack(const std::string& filename);
     

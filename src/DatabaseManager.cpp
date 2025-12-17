@@ -26,25 +26,25 @@ bool DatabaseManager::connect() {
     SQLRETURN ret;
     
     // Allocate environment handle
-    ret = SQLAllocHandle(SQL_HANDLE_ENV, SQL_NULL_HANDLE, &env_);
+    ret = SQLAllocHandle(SQL_HANDLE_ENV, SQL_NULL_HANDLE, &henv_);
     if (ret != SQL_SUCCESS && ret != SQL_SUCCESS_WITH_INFO) {
         spdlog::error("Failed to allocate ODBC environment handle");
         return false;
     }
     
     // Set ODBC version
-    ret = SQLSetEnvAttr(env_, SQL_ATTR_ODBC_VERSION, (void*)SQL_OV_ODBC3, 0);
+    ret = SQLSetEnvAttr(henv_, SQL_ATTR_ODBC_VERSION, (void*)SQL_OV_ODBC3, 0);
     if (ret != SQL_SUCCESS && ret != SQL_SUCCESS_WITH_INFO) {
         spdlog::error("Failed to set ODBC version");
-        SQLFreeHandle(SQL_HANDLE_ENV, env_);
+        SQLFreeHandle(SQL_HANDLE_ENV, henv_);
         return false;
     }
     
     // Allocate connection handle
-    ret = SQLAllocHandle(SQL_HANDLE_DBC, env_, &dbc_);
+    ret = SQLAllocHandle(SQL_HANDLE_DBC, henv_, &hdbc_);
     if (ret != SQL_SUCCESS && ret != SQL_SUCCESS_WITH_INFO) {
         spdlog::error("Failed to allocate ODBC connection handle");
-        SQLFreeHandle(SQL_HANDLE_ENV, env_);
+        SQLFreeHandle(SQL_HANDLE_ENV, henv_);
         return false;
     }
     
@@ -55,16 +55,16 @@ bool DatabaseManager::connect() {
     SQLSMALLINT out_conn_str_len;
     
     // Connect to database
-    ret = SQLDriverConnectA(dbc_, NULL, 
+    ret = SQLDriverConnectA(hdbc_, NULL, 
                            (SQLCHAR*)conn_str.c_str(), SQL_NTS,
                            (SQLCHAR*)out_conn_str, sizeof(out_conn_str),
                            &out_conn_str_len, SQL_DRIVER_NOPROMPT);
     
     if (ret != SQL_SUCCESS && ret != SQL_SUCCESS_WITH_INFO) {
         spdlog::error("Failed to connect to database");
-        logError(dbc_, SQL_HANDLE_DBC);
-        SQLFreeHandle(SQL_HANDLE_DBC, dbc_);
-        SQLFreeHandle(SQL_HANDLE_ENV, env_);
+        logError(hdbc_, SQL_HANDLE_DBC);
+        SQLFreeHandle(SQL_HANDLE_DBC, hdbc_);
+        SQLFreeHandle(SQL_HANDLE_ENV, henv_);
         return false;
     }
     
@@ -74,14 +74,14 @@ bool DatabaseManager::connect() {
 }
 
 void DatabaseManager::disconnect() {
-    if (dbc_ != SQL_NULL_HDBC) {
-        SQLDisconnect(dbc_);
-        SQLFreeHandle(SQL_HANDLE_DBC, dbc_);
-        dbc_ = SQL_NULL_HDBC;
+    if (hdbc_ != SQL_NULL_HDBC) {
+        SQLDisconnect(hdbc_);
+        SQLFreeHandle(SQL_HANDLE_DBC, hdbc_);
+        hdbc_ = SQL_NULL_HDBC;
     }
-    if (env_ != SQL_NULL_HENV) {
-        SQLFreeHandle(SQL_HANDLE_ENV, env_);
-        env_ = SQL_NULL_HENV;
+    if (henv_ != SQL_NULL_HENV) {
+        SQLFreeHandle(SQL_HANDLE_ENV, henv_);
+        henv_ = SQL_NULL_HENV;
     }
     connected_ = false;
     spdlog::info("Disconnected from database");
@@ -609,7 +609,7 @@ bool DatabaseManager::executeSQL(const std::string& sql, nlohmann::json& result)
     SQLRETURN ret;
     
     // Allocate statement handle
-    ret = SQLAllocHandle(SQL_HANDLE_STMT, dbc_, &stmt);
+    ret = SQLAllocHandle(SQL_HANDLE_STMT, hdbc_, &stmt);
     if (ret != SQL_SUCCESS && ret != SQL_SUCCESS_WITH_INFO) {
         spdlog::error("Failed to allocate statement handle");
         return false;
