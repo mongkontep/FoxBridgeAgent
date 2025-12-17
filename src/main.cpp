@@ -228,9 +228,9 @@ std::string promptForPath() {
     std::cout << "\n=============================================================\n";
     std::cout << "FoxBridgeAgent - First Time Setup\n";
     std::cout << "=============================================================\n\n";
-    std::cout << "กรุณาระบุเส้นทางไปยังโฟลเดอร์ที่มีไฟล์ .dbf:\n";
-    std::cout << "ตัวอย่าง: D:\\ExpressD\\Data\n\n";
-    std::cout << "Path: ";
+    std::cout << "Please enter the path to your DBF files folder:\n";
+    std::cout << "Example: D:\\ExpressD\\Data\n\n";
+    std::cout << "DBF Folder Path: ";
     std::getline(std::cin, path);
     
     // Remove quotes if present
@@ -238,13 +238,19 @@ std::string promptForPath() {
         path = path.substr(1, path.length() - 2);
     }
     
-    // Validate path
-    if (!std::filesystem::exists(path)) {
-        std::cerr << "\nERROR: ไม่พบโฟลเดอร์ " << path << std::endl;
-        std::cerr << "กรุณาตรวจสอบเส้นทางและลองใหม่อีกครั้ง\n" << std::endl;
+    // Validate path exists
+    if (path.empty()) {
+        std::cerr << "\nERROR: Path cannot be empty!\n";
         return "";
     }
     
+    if (!std::filesystem::exists(path)) {
+        std::cerr << "\nERROR: Folder not found: " << path << std::endl;
+        std::cerr << "Please check the path and try again.\n";
+        return "";
+    }
+    
+    std::cout << "Path validated successfully!\n";
     return path;
 }
 
@@ -330,41 +336,75 @@ int main(int argc, char* argv[]) {
                 std::cout << "Using config: " << config_path << std::endl;
             } catch (const std::exception& e) {
                 std::cerr << "Config file invalid: " << e.what() << std::endl;
-            }
-        }
-    }
-    
-    // Interactive setup if no config
-    if (!config_loaded) {
-        std::cout << "\nไม่พบไฟล์ config.json - เริ่มต้นการตั้งค่า\n";
+            }No config.json found - Starting interactive setup\n";
         
         std::string dbf_path = promptForPath();
-        if (dbf_path.empty()) return 1;
+        if (dbf_path.empty()) {
+            std::cerr << "\nSetup cancelled. Press Enter to exit...";
+            std::cin.get();
+            return 1;
+        }
         
-        std::cout << "\nPort (Enter = 8080): ";
+        std::cout << "\nPort number (press Enter for default 8080): ";
         std::string port_input;
         std::getline(std::cin, port_input);
         int port = 8080;
         if (!port_input.empty()) {
             try {
                 port = std::stoi(port_input);
+                if (port < 1 || port > 65535) {
+                    std::cout << "Invalid port, using default 8080\n";
+                    port = 8080;
+                }
             } catch (...) {
+                std::cout << "Invalid input, using default 8080\n";
                 port = 8080;
             }
         }
         
-        g_config = createDefaultConfig(dbf_path, port);
-        
-        std::cout << "\n=============================================================\n";
-        std::cout << "Configuration created!\n";
-        std::cout << "DBF Path: " << dbf_path << "\n";
-        std::cout << "Port:     " << port << "\n";
-        std::cout << "API Key:  quCtcMFsFNw3zwOFxOAJxFKaOdpbuwftKzMelJCVvks=\n";
-        std::cout << "\nโปรแกรมจะเริ่มทำงาน...\n";
-        std::cout << "=============================================================\n\n";
+        try {
+            g_config = createDefaultConfig(dbf_path, port);
+            
+            std::cout << "\n=============================================================\n";
+            std::cout << "Configuration Created Successfully!\n";
+            std::cout << "=============================================================\n";
+            std::cout << "DBF Folder: " << dbf_path << "\n";
+            std::cout << "Port:       " << port << "\n";
+            std::cout << "API Key:    quCtcMFsFNw3zwOFxOAJxFKaOdpbuwftKzMelJCVvks=\n";
+            std::cout << "\nStarting server...\n";
+            std::cout << "=============================================================\n\n";
+        } catch (const std::exception& e) {
+            std::cerr << "\nERROR: Failed to create configuration: " << e.what() << "\n";
+            std::cerr << "Press Enter to exit...";
+            std::cin.get();
+            return 1;
+        }
     }
     
-    // Initialize and run
+    // Initialize and run with error handling
+    try {
+        initializeLogging(g_config);
+        
+        std::cout << "Server starting on http://" << g_config.host << ":" << g_config.port << "\n";
+        std::cout << "Press Ctrl+C to stop\n\n";
+        
+        if (mode == "console") {
+            return runAsConsole();
+        } else {
+            return runAsService();
+        }
+    } catch (const std::exception& e) {
+        std::cerr << "\n=============================================================\n";
+        std::cerr << "FATAL ERROR: " << e.what() << "\n";
+        std::cerr << "=============================================================\n";
+        std::cerr << "\nPossible causes:\n";
+        std::cerr << "- Database path is incorrect\n";
+        std::cerr << "- VFP ODBC Driver not installed\n";
+        std::cerr << "- Port " << g_config.port << " is already in use\n";
+        std::cerr << "- Insufficient permissions\n\n";
+        std::cerr << "Press Enter to exit...";
+        std::cin.get();
+        return 1
     initializeLogging(g_config);
     
     if (mode == "console") {
