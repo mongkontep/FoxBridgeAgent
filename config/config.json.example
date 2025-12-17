@@ -1,16 +1,45 @@
 {
-  "database_path": "D:\\ExpressD\\Data",
-  "api_key": "quCtcMFsFNw3zwOFxOAJxFKaOdpbuwftKzMelJCVvks=",
-  "port": 8787,
-  "host": "127.0.0.1",
-  "cloudflare_token": "eyJhIjoiYWJjZDEyMzQiLCJ0IjoiZWZnaDU2NzgiLCJzIjoiaWprbDkwMTIifQ==",
-  "cloudflare_public_url": "https://hok.pkid.io",
-  "log_level": "info",
-  "log_path": "C:\\ProgramData\\FoxBridgeAgent\\logs",
-  "index_policy": "auto",
-  "maintenance_window": "02:00-04:00",
-  "max_retry_attempts": 3,
-  "connection_timeout": 30,
+  "_comment": "FoxBridgeAgent Configuration - Copy to config.json and edit",
+  "_instructions": [
+    "1. Copy this file: copy config.json.example config.json",
+    "2. Edit config.json with your settings",
+    "3. แก้ database.dbf_path ให้ชี้ไปที่โฟลเดอร์ของคุณ",
+    "4. Run: FoxBridgeAgent.exe --console"
+  ],
   
-  "_example_note": "This is an EXAMPLE configuration with domain hok.pkid.io"
+  "database": {
+    "type": "vfp_odbc",
+    "dsn": "VFP_ExpressD",
+    "connection_string": "Driver={Microsoft Visual FoxPro Driver};SourceType=DBF;SourceDB=D:\\ExpressD\\Data;Exclusive=No;",
+    "dbf_path": "C:\\ExpressD\Dat",
+    "_note": "แก้ dbf_path ให้ชี้ไปที่โฟลเดอร์ที่มีไฟล์ .dbf ของคุณ"
+  },
+  
+  "server": {
+    "host": "0.0.0.0",
+    "port": 8080,
+    "api_key": "quCtcMFsFNw3zwOFxOAJxFKaOdpbuwftKzMelJCVvks=",
+    "_note_host": "0.0.0.0 = listen on all interfaces, 127.0.0.1 = localhost only",
+    "_note_api_key": "สร้างใหม่ด้วย: openssl rand -base64 32"
+  },
+  
+  "cloudflare": {
+    "enabled": false,
+    "tunnel_name": "foxbridge",
+    "config_path": "C:\\ProgramData\\FoxBridgeAgent\\cloudflare.yml",
+    "_note": "เปิดใช้ Cloudflare Tunnel ถ้าต้องการ expose API ผ่าน internet"
+  },
+  
+  "logging": {
+    "level": "info",
+    "path": "C:\\ProgramData\\FoxBridgeAgent\\logs",
+    "_note": "level: debug (verbose), info (normal), warn, error (minimal)"
+  },
+  
+  "maintenance": {
+    "auto_reindex": true,
+    "check_interval_minutes": 60,
+    "backup_before_pack": true,
+    "_note": "auto_reindex: ตรวจสอบและซ่อม index อัตโนมัติทุก 1 ชั่วโมง"
+  }
 }

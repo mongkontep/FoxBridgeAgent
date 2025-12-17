@@ -183,9 +183,49 @@ void printUsage() {
               << std::endl;
 }
 
+std::string findConfigFile() {
+    // List of possible config locations (in order of priority)
+    std::vector<std::string> search_paths = {
+        ".\\config.json",                                    // Current directory
+        "C:\\ProgramData\\FoxBridgeAgent\\config.json",     // Program Data (recommended)
+        ".\\config\\config.json",                           // Config folder in current dir
+        "config.json.example"                                // Example file
+    };
+    
+    for (const auto& path : search_paths) {
+        if (std::filesystem::exists(path)) {
+            return path;
+        }
+    }
+    
+    return "";  // Not found
+}
+
+void printConfigHelp() {
+    std::cerr << "\n=============================================================\n";
+    std::cerr << "ERROR: ไม่พบไฟล์ config.json\n";
+    std::cerr << "=============================================================\n\n";
+    std::cerr << "วิธีแก้:\n\n";
+    std::cerr << "1. สร้างไฟล์ config.json ใน current directory:\n";
+    std::cerr << "   > copy config\\config.json.example config.json\n";
+    std::cerr << "   > notepad config.json\n\n";
+    std::cerr << "2. หรือสร้างใน Program Data:\n";
+    std::cerr << "   > mkdir C:\\ProgramData\\FoxBridgeAgent\n";
+    std::cerr << "   > copy config\\config.json.example C:\\ProgramData\\FoxBridgeAgent\\config.json\n";
+    std::cerr << "   > notepad C:\\ProgramData\\FoxBridgeAgent\\config.json\n\n";
+    std::cerr << "3. แก้ไขค่าในไฟล์:\n";
+    std::cerr << "   - dbf_path: เส้นทางไปยังโฟลเดอร์ที่มีไฟล์ .dbf\n";
+    std::cerr << "   - port: port ที่ต้องการใช้ (default: 8080)\n";
+    std::cerr << "   - api_key: API key สำหรับ authentication\n\n";
+    std::cerr << "4. รันโปรแกรมอีกครั้ง:\n";
+    std::cerr << "   > FoxBridgeAgent.exe --console\n\n";
+    std::cerr << "=============================================================\n\n";
+}
+
 int main(int argc, char* argv[]) {
-    std::string config_path = "C:\\ProgramData\\FoxBridgeAgent\\config.json";
-    std::string mode = "service";
+    std::string config_path;
+    std::string mode = "console";  // Default to console for first-time setup
+    bool config_specified = false;
     
     // Parse command line arguments
     for (int i = 1; i < argc; ++i) {
@@ -237,7 +277,18 @@ int main(int argc, char* argv[]) {
             }
         } else if (arg == "--config" && i + 1 < argc) {
             config_path = argv[++i];
+            config_specified = true;
         }
+    }
+    
+    // Auto-detect config file if not specified
+    if (!config_specified) {
+        config_path = findConfigFile();
+        if (config_path.empty()) {
+            printConfigHelp();
+            return 1;
+        }
+        std::cout << "Using config file: " << config_path << std::endl;
     }
     
     // Load configuration
@@ -245,8 +296,14 @@ int main(int argc, char* argv[]) {
         g_config = Config::load(config_path);
         g_config.validate();
     } catch (const std::exception& e) {
+        std::cerr << "\n=============================================================\n";
         std::cerr << "Configuration error: " << e.what() << std::endl;
-        std::cerr << "Please check: " << config_path << std::endl;
+        std::cerr << "=============================================================\n\n";
+        std::cerr << "กรุณาตรวจสอบไฟล์: " << config_path << "\n\n";
+        std::cerr << "ค่าที่ต้องตั้ง:\n";
+        std::cerr << "  - database.dbf_path: เส้นทางไปยังโฟลเดอร์ .dbf files\n";
+        std::cerr << "  - server.port: port number (default: 8080)\n";
+        std::cerr << "  - server.api_key: API key for authentication\n\n";
         return 1;
     }
     
