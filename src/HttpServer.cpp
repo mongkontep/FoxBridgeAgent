@@ -363,8 +363,8 @@ nlohmann::json HttpServer::handleFindDocnum(const std::string& docnum) {
         {"status", result.success ? "success" : "error"},
         {"data", result.data}
     };
-    if (!result.error_message.empty()) {
-        json_result["error"] = result.error_message;
+    if (!result.message.empty()) {
+        json_result["message"] = result.message;
     }
     return json_result;
 }
@@ -575,18 +575,6 @@ void HttpServer::sendJsonResponse(http::response<http::string_body>& res, int st
     res.set(http::field::content_type, "application/json");
     res.body() = json.dump(2);
     res.prepare_payload();
-}
-
-void HttpServer::sendError(http::response<http::string_body>& res, int status, 
-                          const std::string& message) {
-    nlohmann::json error_json = {
-        {"status", "error"},
-        {"msg", message},
-        {"data", nullptr},
-        {"index", "ok"},
-        {"warnings", nlohmann::json::array()}
-    };
-    sendJsonResponse(res, status, error_json);
 }
 
 } // namespace FoxBridge
