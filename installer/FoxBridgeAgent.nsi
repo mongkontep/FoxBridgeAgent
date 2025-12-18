@@ -117,7 +117,9 @@ Function ConfigPage
   
   ; Validate Port
   ${If} $HttpPort == ""
-    StrCpy $HttpPort "8080"nd
+    StrCpy $HttpPort "8080"
+  ${EndIf}
+FunctionEnd
 
 Function ConfigPageLeave
   ${NSD_GetText} $DatabasePath $DatabasePath
