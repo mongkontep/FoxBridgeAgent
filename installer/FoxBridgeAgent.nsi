@@ -24,7 +24,7 @@ VIAddVersionKey "FileVersion" "1.0.0.0"
 
 ; Pages
 !insertmacro MUI_PAGE_WELCOME
-!insertmacro MUI_PAGE_LICENSE "LICENSE.txt"
+; !insertmacro MUI_PAGE_LICENSE "LICENSE.txt"
 Page custom ConfigPage ConfigPageLeave
 !insertmacro MUI_PAGE_DIRECTORY
 !insertmacro MUI_PAGE_INSTFILES
