@@ -138,7 +138,25 @@ Function ConfigPageLeave
     Abort
   ${EndIf}
 FunctionEnd
- with proper format
+
+; Browse button handler
+Function BrowseDatabase
+  nsDialogs::SelectFolderDialog "Select folder containing .DBF files" "$DatabasePath"
+  Pop $0
+  ${If} $0 != error
+    ${NSD_SetText} $DatabasePath $0
+  ${EndIf}
+FunctionEnd
+
+; Install Section
+Section "Install" SecInstall
+  SetOutPath "$INSTDIR\bin"
+  File "..\FoxBridgeAgent.exe"
+  
+  ; Create config directory
+  CreateDirectory "$APPDATA\FoxBridgeAgent"
+  CreateDirectory "C:\ProgramData\FoxBridgeAgent\logs"
+  
   DetailPrint "Creating configuration file..."
   
   ; Escape backslashes for JSON
@@ -197,19 +215,7 @@ Function EscapeBackslashes
   Pop $2
   Pop $1
   Exch $0
-FunctionEnd '{$\r$\n'
-  FileWrite $0 '  "database_path": "$DatabasePath",$\r$\n'
-  FileWrite $0 '  "api_key": "$ApiKey",$\r$\n'
-  FileWrite $0 '  "port": $HttpPort,$\r$\n'
-  FileWrite $0 '  "cloudflare_token": "$CloudflareToken",$\r$\n'
-  FileWrite $0 '  "log_level": "info",$\r$\n'
-  FileWrite $0 '  "log_path": "C:\\ProgramData\\FoxBridgeAgent\\logs",$\r$\n'
-  FileWrite $0 '  "index_policy": "auto",$\r$\n'
-  FileWrite $0 '  "maintenance_window": "02:00-04:00",$\r$\n'
-  FileWrite $0 '  "max_retry_attempts": 3,$\r$\n'
-  FileWrite $0 '  "connection_timeout": 30$\r$\n'
-  FileWrite $0 '}$\r$\n'
-  FileClose $0
+FunctionEnd
   
   ; Write registry
   WriteRegStr HKLM "Software\FoxBridgeAgent" "Install_Dir" "$INSTDIR"
